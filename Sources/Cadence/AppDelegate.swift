@@ -31,10 +31,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSPo
         popover.behavior = .transient
         popover.animates = true
         popover.delegate = self
-        popover.contentSize = NSSize(width: 420, height: 600)
-        popover.contentViewController = NSHostingController(rootView: MixerView(model: model))
+        popover.contentSize = NSSize(width: MixerView.width, height: MixerView(model: model).preferredHeight)
+        let popoverController = NSHostingController(rootView: MixerView(model: model, onResize: { [weak self] height in
+            self?.popover.contentSize = NSSize(width: MixerView.width, height: height)
+        }))
+        popoverController.sizingOptions = []
+        popover.contentViewController = popoverController
         setupMenu()
-        if !CommandLine.arguments.contains("--background") { showWindow() }
+        if !CommandLine.arguments.contains("--background") {
+            DispatchQueue.main.async { [weak self] in self?.showPopover() }
+        }
     }
 
     private func setupMenu() {
@@ -67,6 +73,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSPo
         }
         if popover.isShown { popover.performClose(nil); return }
         if let window, window.isVisible { window.makeKeyAndOrderFront(nil); NSApp.activate(); return }
+        showPopover()
+    }
+
+    private func showPopover() {
         guard let button = item.button else { return }
         model.refresh()
         popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
@@ -78,15 +88,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSPo
     @objc private func showWindow() {
         popover?.performClose(nil)
         if window == nil {
-            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 440, height: 670),
-                styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
+            let height = MixerView(model: model).preferredHeight
+            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: MixerView.width, height: height),
+                styleMask: [.titled, .closable, .miniaturizable], backing: .buffered, defer: false)
             window.title = "Cadence"
             window.titlebarAppearsTransparent = true
             window.backgroundColor = .windowBackgroundColor
-            window.contentViewController = NSHostingController(rootView: MixerView(model: model))
-            window.setContentSize(NSSize(width: 440, height: 670))
-            window.minSize = NSSize(width: 400, height: 500)
-            window.maxSize = NSSize(width: 600, height: 1000)
+            let controller = NSHostingController(rootView: MixerView(model: model, onResize: { [weak self] height in
+                self?.resizeWindow(height: height)
+            }))
+            controller.sizingOptions = []
+            window.contentViewController = controller
+            window.setContentSize(NSSize(width: MixerView.width, height: height))
             window.isReleasedWhenClosed = false
             window.delegate = self
             window.center()
@@ -98,7 +111,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSPo
         NSApp.activate()
     }
 
-    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool { showWindow(); return true }
+    private func resizeWindow(height: CGFloat) {
+        guard let window else { return }
+        let previous = window.frame
+        var frame = window.frameRect(forContentRect: NSRect(x: 0, y: 0, width: MixerView.width, height: height))
+        frame.origin = NSPoint(x: previous.minX, y: previous.maxY - frame.height)
+        window.setFrame(frame, display: true)
+    }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if let window, window.isVisible { window.makeKeyAndOrderFront(nil); NSApp.activate() }
+        else { showPopover() }
+        return true
+    }
     func windowWillClose(_ notification: Notification) { model.setMetering(false) }
     func popoverDidShow(_ notification: Notification) { model.setMetering(true) }
     func popoverDidClose(_ notification: Notification) { model.setMetering(window?.isVisible == true) }
@@ -106,7 +131,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSPo
 
     @objc private func showAbout() {
         NSApp.orderFrontStandardAboutPanel(options: [
-            .applicationName: "Cadence", .applicationVersion: "1.0.0",
+            .applicationName: "Cadence", .applicationVersion: "1.0.1",
             .credits: NSAttributedString(string: "A little more harmony.\nNative application audio control for macOS.")
         ])
     }
@@ -125,10 +150,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSPo
             return MixerChannel(id: name, name: name, icon: icon, processIDs: [], running: true,
                 settings: ChannelSettings(volume: [0.7, 0.45, 1.0, 0.3][index], muted: index == 3), peak: 0.2)
         }
-        let controller = NSHostingController(rootView: MixerView(model: fixture))
-        let panel = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 440, height: 660), styleMask: [.borderless], backing: .buffered, defer: false)
+        if CommandLine.arguments.contains("--single-app") { fixture.channels = Array(fixture.channels.prefix(1)) }
+        if CommandLine.arguments.contains("--empty") { fixture.channels = [] }
+        if CommandLine.arguments.contains("--many-apps") {
+            let original = fixture.channels
+            fixture.channels += original.map { channel in
+                MixerChannel(id: channel.id + ".extra", name: channel.name + " Extra", icon: channel.icon,
+                    processIDs: [], running: true, settings: channel.settings, peak: 0.2)
+            }
+        }
+        if CommandLine.arguments.contains("--paused") { fixture.enabled = false }
+        let root = MixerView(model: fixture, initiallyShowingSettings: CommandLine.arguments.contains("--settings"))
+        let controller = NSHostingController(rootView: root)
+        controller.sizingOptions = []
+        let size = NSSize(width: MixerView.width, height: root.preferredHeight)
+        let panel = NSWindow(contentRect: NSRect(origin: .zero, size: size), styleMask: [.borderless], backing: .buffered, defer: false)
         panel.contentViewController = controller
-        panel.setContentSize(NSSize(width: 440, height: 660))
+        panel.setContentSize(size)
         panel.display()
         let view = controller.view
         view.layoutSubtreeIfNeeded()

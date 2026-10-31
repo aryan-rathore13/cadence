@@ -18,3 +18,12 @@ Light and dark screenshot fixtures exercise the real native SwiftUI layout with 
 - Installed successfully into `~/Applications/Cadence.app`; its signature passed strict verification. The installed binary passed the same four-stage live test with 411 callbacks and matching ratios.
 - A sample of the open, active mixer reported approximately 28 MB physical footprint. CPU measurements included interaction and audio processing and should not be read as idle benchmarks. Meter polling stops when the mixer window or popover is closed.
 - The final preference-refresh optimization passed all seven tests, and the updated release was installed successfully. The audio callback was unchanged by that optimization.
+
+## Compact interface, 1.0.1
+
+- Compiled and packaged the native layout without warnings.
+- Rendered and visually inspected one-app, four-app, eight-app/search, paused, empty, and settings fixtures in native light/dark appearance.
+- One active application uses a 320 × 263 point panel; four use 320 × 422. The previous menu-bar panel was 420 × 600, so the one-app view uses approximately 67% less desktop area.
+- AppKit and SwiftUI use the same calculated dimensions. The panel grows with its application list, caps its height, and scrolls excess rows. Settings uses the same 320-point width.
+- This update changes presentation and panel lifecycle only; the audio processing engine is unchanged.
+- Installed and relaunched version 1.0.1 successfully; the installed app's code signature passed strict verification. Existing audio preferences were retained.

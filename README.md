@@ -6,7 +6,7 @@ Cadence lives in your menu bar and gives each audio application its own volume, 
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/cadence-dark.png">
-  <img src="docs/images/cadence-light.png" width="440" alt="Cadence's native mixer with per-application volume sliders">
+  <img src="docs/images/cadence-light.png" width="320" alt="Cadence's compact native mixer with per-application volume sliders">
 </picture>
 
 *Native interface shown with sample application data. Appearance follows your Mac.*
@@ -21,6 +21,8 @@ Requires **macOS 14.2 or later**. The local build supports your Mac's architectu
 4. Adjust its slider, click its speaker to mute, or click its headphones to hear only that app.
 
 Closing the window leaves Cadence in the menu bar. Click its sliders icon to open the compact mixer; right-click for the window, pause, and quit actions. Pausing or quitting releases the taps and restores the applications' original playback. Remembered levels apply when you enable Cadence again.
+
+The mixer opens beneath its menu-bar icon by default. Its 320-point width and content-sized height keep it out of the way: one active app fits in 263 points of height, four fit in 422, and longer lists scroll. Settings stays inside the same compact panel. The optional window also fits its content automatically.
 
 The mixer follows your system output, including headphones and Bluetooth speakers. Its master slider attenuates controlled applications; your keyboard volume keys continue to control the hardware volume. Per-app levels and mute settings are remembered by application bundle identifier. Global mute and solo reset when you relaunch.
 

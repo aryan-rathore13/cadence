@@ -41,3 +41,21 @@ The route transition is the main operational consideration: restarting a route c
 No secrets, credentials, `.env` files, authentication code, payment code, or database migrations are included. Git author identity is configured locally to the personal account's GitHub noreply address. No global Git configuration was changed.
 
 Review question: **What happens to an application's original playback when Cadence is paused or quit, and which macOS permission is needed for its per-app controls?**
+
+## Compact interface update, 1.0.1
+
+This subsequent update is separate from the approved 1.0.0 publication.
+
+| File | Change |
+| --- | --- |
+| `Sources/Cadence/MixerView.swift` | Replaces the oversized header/output card and spacious app rows with a 320-point-wide content-sized mixer; keeps settings in the same surface and caps scrolling lists. |
+| `Sources/Cadence/AppDelegate.swift` | Opens the compact menu-bar panel by default, resizes both presentation modes to the visible contents, and adds screenshot fixtures for different list sizes and settings. |
+| `Resources/Info.plist` | Advances the local build to 1.0.1 (build 2). |
+| `README.md` | Documents the smaller panel and updates screenshot display width. |
+| `docs/ARCHITECTURE.md` | Explains the shared size calculation and AppKit resizing behavior. |
+| `docs/VERIFICATION.md` | Records the compact layout cases and measured dimensions. |
+| `docs/images/cadence-light.png` | Refreshes the light screenshot to the compact design. |
+| `docs/images/cadence-dark.png` | Refreshes the dark screenshot to the compact design. |
+| `docs/PUBLISH_REVIEW.md` | Records this update's file-by-file scope. |
+
+No credentials, auth/payment behavior, migrations, or audio-engine changes are included.

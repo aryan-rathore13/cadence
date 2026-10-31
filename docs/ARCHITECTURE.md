@@ -20,6 +20,8 @@ Route creation is transactional: any failure tears down already-created resource
 
 `UserDefaults` stores bundle-keyed app volumes/mutes, master attenuation, and whether the mixer is enabled. Audio buffers are never persisted. Login startup uses `SMAppService.mainApp`, with errors and pending system approval shown in Settings.
 
+The default surface is a 320-point-wide menu-bar popover. Its height follows the visible application count, search, solo, and error states, with a 466-point cap. Longer lists scroll between a persistent header and footer. A SwiftUI size-change callback updates AppKit's popover or optional window; the window keeps its top edge fixed while resizing. Settings replaces the mixer inside the same panel instead of opening a larger sheet.
+
 ## Distribution
 
 The build script bundles the Swift executable, usage-description plist, and icon, signs locally, verifies the signature, and creates a ZIP. A stable local designated requirement preserves bundle identity across local builds. Public distribution requires a Developer ID identity, hardened runtime validation, and notarization; no such identity is assumed or generated here. CI compiles and runs synthetic tests on macOS without requesting audio access.
