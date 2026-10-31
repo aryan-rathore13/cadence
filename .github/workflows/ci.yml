@@ -1,0 +1,20 @@
+name: macOS
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  build-and-test:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Gain renderer smoke test
+        run: swift test --filter AudioDSPTests.testAppliesExactGainAndReportsPeak
+      - name: Tests
+        run: swift test
+      - name: Package
+        run: bash scripts/build.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Cadence-macOS
+          path: dist/Cadence-macOS.zip
