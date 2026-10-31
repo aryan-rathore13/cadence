@@ -27,3 +27,11 @@ Light and dark screenshot fixtures exercise the real native SwiftUI layout with 
 - AppKit and SwiftUI use the same calculated dimensions. The panel grows with its application list, caps its height, and scrolls excess rows. Settings uses the same 320-point width.
 - This update changes presentation and panel lifecycle only; the audio processing engine is unchanged.
 - Installed and relaunched version 1.0.1 successfully; the installed app's code signature passed strict verification. Existing audio preferences were retained.
+
+## Outside-click dismissal, 1.0.1 build 3
+
+- A temporary native AppKit harness compiled the production application delegate and mixer views with isolated app preferences. Eight checks completed with zero failures: opening the popover, keeping it open for an inside click, dismissing it for another-window click, reopening, finding the focus-test application, dismissing on a real app switch, opening the optional window, and dismissing that window for an outside click/focus change.
+- The harness posted mouse events within its own process and used cooperative AppKit activation to switch to Finder. It did not inject system-wide mouse input or request Accessibility access. The test host used a regular application activation policy to make programmatic focus changes deterministic; the installed app remains a menu-bar accessory.
+- Dismissal only hides the UI, stops its meter timer, and removes temporary mouse monitors. It does not stop audio routes or change volume, mute, or enabled preferences.
+- The popover closes immediately so its close animation cannot delay reopening. Both visible surfaces install their dismissal monitors even before keyboard focus arrives.
+- The release compiled without warnings, installed and relaunched as 1.0.1 build 3, passed strict signature verification, and produced a ZIP with no archive errors.

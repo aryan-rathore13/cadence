@@ -22,6 +22,8 @@ Route creation is transactional: any failure tears down already-created resource
 
 The default surface is a 320-point-wide menu-bar popover. Its height follows the visible application count, search, solo, and error states, with a 466-point cap. Longer lists scroll between a persistent header and footer. A SwiftUI size-change callback updates AppKit's popover or optional window; the window keeps its top edge fixed while resizing. Settings replaces the mixer inside the same panel instead of opening a larger sheet.
 
+Both surfaces dismiss on outside mouse clicks and application focus loss. Mouse-only local/global NSEvent monitors are installed while the mixer is visible and removed on dismissal or termination. Local clicks inside the mixer and its status-bar button continue to their controls. The optional window also dismisses when it loses key status. Dismissal hides the UI and stops metering; it does not disable audio routes, alter levels, or quit the app.
+
 ## Distribution
 
 The build script bundles the Swift executable, usage-description plist, and icon, signs locally, verifies the signature, and creates a ZIP. A stable local designated requirement preserves bundle identity across local builds. Public distribution requires a Developer ID identity, hardened runtime validation, and notarization; no such identity is assumed or generated here. CI compiles and runs synthetic tests on macOS without requesting audio access.

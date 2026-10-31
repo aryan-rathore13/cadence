@@ -24,6 +24,8 @@ Closing the window leaves Cadence in the menu bar. Click its sliders icon to ope
 
 The mixer opens beneath its menu-bar icon by default. Its 320-point width and content-sized height keep it out of the way: one active app fits in 263 points of height, four fit in 422, and longer lists scroll. Settings stays inside the same compact panel. The optional window also fits its content automatically.
 
+Click outside the mixer or switch to another app to collapse it. This applies to both the menu-bar panel and the optional window, including Settings. Audio control keeps running at your chosen levels; click Cadence's menu-bar icon to reopen it. No Accessibility or Input Monitoring permission is needed for dismissal.
+
 The mixer follows your system output, including headphones and Bluetooth speakers. Its master slider attenuates controlled applications; your keyboard volume keys continue to control the hardware volume. Per-app levels and mute settings are remembered by application bundle identifier. Global mute and solo reset when you relaunch.
 
 ## Build and install

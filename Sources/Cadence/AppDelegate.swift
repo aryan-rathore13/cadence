@@ -7,6 +7,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSPo
     private var item: NSStatusItem!
     private var popover: NSPopover!
     private var window: NSWindow?
+    private var globalClickMonitor: Any?
+    private var localClickMonitor: Any?
+    private var isCollapsing = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         if let index = CommandLine.arguments.firstIndex(of: "--snapshot"), CommandLine.arguments.count > index + 1 {
@@ -29,7 +32,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSPo
         }
         popover = NSPopover()
         popover.behavior = .transient
-        popover.animates = true
+        // Close immediately so a quick menu-bar click can reopen it reliably.
+        popover.animates = false
         popover.delegate = self
         popover.contentSize = NSSize(width: MixerView.width, height: MixerView(model: model).preferredHeight)
         let popoverController = NSHostingController(rootView: MixerView(model: model, onResize: { [weak self] height in
@@ -79,8 +83,52 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSPo
     private func showPopover() {
         guard let button = item.button else { return }
         model.refresh()
-        popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         NSApp.activate()
+        if !popover.isShown {
+            popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        }
+        popover.contentViewController?.view.window?.makeKey()
+    }
+
+    /// Mouse-only monitors need no Accessibility or Input Monitoring permission.
+    /// Install them only while a mixer surface is visible.
+    private func startDismissalMonitors() {
+        let clicks: NSEvent.EventTypeMask = [.leftMouseDown, .rightMouseDown, .otherMouseDown]
+        if globalClickMonitor == nil {
+            globalClickMonitor = NSEvent.addGlobalMonitorForEvents(matching: clicks) { [weak self] _ in
+                MainActor.assumeIsolated { self?.collapseMixer() }
+            }
+        }
+        if localClickMonitor == nil {
+            localClickMonitor = NSEvent.addLocalMonitorForEvents(matching: clicks) { [weak self] event in
+                MainActor.assumeIsolated {
+                    guard let self else { return }
+                    let allowedWindows = [self.popover.contentViewController?.view.window, self.window, self.item.button?.window]
+                    if !allowedWindows.contains(where: { $0 != nil && $0 === event.window }) {
+                        self.collapseMixer()
+                    }
+                }
+                // Always deliver the click to its intended control/window.
+                return event
+            }
+        }
+    }
+
+    private func stopDismissalMonitors() {
+        if let globalClickMonitor { NSEvent.removeMonitor(globalClickMonitor) }
+        if let localClickMonitor { NSEvent.removeMonitor(localClickMonitor) }
+        globalClickMonitor = nil
+        localClickMonitor = nil
+    }
+
+    private func collapseMixer() {
+        guard !isCollapsing else { return }
+        isCollapsing = true
+        defer { isCollapsing = false }
+        window?.orderOut(nil)
+        popover?.performClose(nil)
+        model?.setMetering(false)
+        stopDismissalMonitors()
     }
 
     @objc private func toggleEnabled() { model.setEnabled(!model.enabled) }
@@ -106,9 +154,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSPo
             self.window = window
         }
         model.refresh()
+        NSApp.activate()
         window?.makeKeyAndOrderFront(nil)
         model.setMetering(true)
-        NSApp.activate()
+        startDismissalMonitors()
     }
 
     private func resizeWindow(height: CGFloat) {
@@ -124,10 +173,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSPo
         else { showPopover() }
         return true
     }
-    func windowWillClose(_ notification: Notification) { model.setMetering(false) }
-    func popoverDidShow(_ notification: Notification) { model.setMetering(true) }
-    func popoverDidClose(_ notification: Notification) { model.setMetering(window?.isVisible == true) }
-    func applicationWillTerminate(_ notification: Notification) { model?.shutdown() }
+    func applicationDidResignActive(_ notification: Notification) { collapseMixer() }
+    func windowDidBecomeKey(_ notification: Notification) { startDismissalMonitors() }
+    func windowDidResignKey(_ notification: Notification) { collapseMixer() }
+    func windowWillClose(_ notification: Notification) {
+        model.setMetering(false)
+        if !popover.isShown { stopDismissalMonitors() }
+    }
+    func popoverDidShow(_ notification: Notification) {
+        model.setMetering(true)
+        startDismissalMonitors()
+    }
+    func popoverDidClose(_ notification: Notification) {
+        model.setMetering(window?.isVisible == true)
+        if window?.isVisible != true { stopDismissalMonitors() }
+    }
+    func applicationWillTerminate(_ notification: Notification) {
+        stopDismissalMonitors()
+        model?.shutdown()
+    }
 
     @objc private func showAbout() {
         NSApp.orderFrontStandardAboutPanel(options: [
